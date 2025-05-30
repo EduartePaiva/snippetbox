@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 	"strconv"
@@ -13,17 +14,28 @@ func home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Write([]byte("Hello from Snippetbox"))
+	ts, err := template.ParseFiles("./ui/html/home.page.html")
+	if err != nil {
+		log.Println(err.Error())
+		http.Error(w, "Internal server error", 500)
+		return
+	}
+
+	err = ts.Execute(w, nil)
+	if err != nil {
+		log.Println(err.Error())
+		http.Error(w, "Internal server error", 500)
+	}
 }
 
 func showSnippet(w http.ResponseWriter, r *http.Request) {
 	numId, err := strconv.Atoi(r.URL.Query().Get("id"))
 	if err != nil || numId < 1 {
-		w.Write([]byte("Invalid id"))
+		http.NotFound(w, r)
 		return
 	}
 
-	w.Write([]byte(fmt.Sprintf("Displaying id number %v", numId)))
+	w.Write([]byte(fmt.Sprintf("Display a specific snippet with ID %d...", numId)))
 }
 
 func createSnippet(w http.ResponseWriter, r *http.Request) {
@@ -33,15 +45,5 @@ func createSnippet(w http.ResponseWriter, r *http.Request) {
 		return
 
 	}
-	w.Write([]byte("Create a new snippet"))
-}
-
-func main() {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", home)
-	mux.HandleFunc("/snippet", showSnippet)
-	mux.HandleFunc("/snippet/create", createSnippet)
-	log.Println("Starting server at port: 4000")
-	err := http.ListenAndServe(":4000", mux)
-	log.Fatal(err)
+	w.Write([]byte("Create a new snippet..."))
 }
