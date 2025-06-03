@@ -8,7 +8,14 @@ import (
 	"os"
 
 	_ "github.com/go-sql-driver/mysql"
+	"guthub.com/eduartepaiva/snippetbox/pkg/models/mysql"
 )
+
+type application struct {
+	infoLog  *log.Logger
+	errorLog *log.Logger
+	snippets *mysql.SnippetModel
+}
 
 func main() {
 	addr := flag.String("addr", ":4000", "HTTP network address")
@@ -24,7 +31,11 @@ func main() {
 	}
 	defer db.Close()
 
-	app := application{infoLog, errorLog}
+	app := application{
+		infoLog,
+		errorLog,
+		&mysql.SnippetModel{DB: db},
+	}
 
 	srv := http.Server{
 		Addr:     *addr,

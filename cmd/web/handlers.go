@@ -3,15 +3,9 @@ package main
 import (
 	"fmt"
 	"html/template"
-	"log"
 	"net/http"
 	"strconv"
 )
-
-type application struct {
-	infoLog  *log.Logger
-	errorLog *log.Logger
-}
 
 func (app *application) home(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
