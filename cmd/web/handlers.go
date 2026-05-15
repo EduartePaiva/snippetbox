@@ -15,6 +15,14 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	s, err := app.snippets.Latest()
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+
+	data := &templateData{Snippets: s}
+
 	files := []string{
 		"./ui/html/home.page.html",
 		"./ui/html/base.layout.html",
@@ -27,7 +35,7 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ts.Execute(w, nil)
+	err = ts.Execute(w, data)
 	if err != nil {
 		app.serverError(w, err)
 	}
