@@ -12,8 +12,8 @@ func (app *application) routes() http.Handler {
 	router.Use(app.recoverPanic(), app.logRequest(), secureHeaders())
 
 	router.GET("/", ginHandleFuncAdapter(app.home))
-	router.GET("/snippet/:id/", ginHandleFuncAdapter(app.showSnippet))
 	router.POST("/snippet/create", ginHandleFuncAdapter(app.createSnippet))
+	router.GET("/snippet/:id/", ginHandleFuncAdapter(app.showSnippet))
 
 	router.Static("/static/", "./ui/static")
 
