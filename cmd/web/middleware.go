@@ -2,35 +2,42 @@ package main
 
 import (
 	"fmt"
-	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
-func secureHeaders(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("X-Frame-Options", "deny")
-		w.Header().Add("X-XSS-Protection", "1; mode=block")
+func secureHeaders() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Writer.Header().Add("X-Frame-Options", "deny")
+		c.Writer.Header().Add("X-XSS-Protection", "1; mode=block")
 
-		next.ServeHTTP(w, r)
-	})
+		c.Next()
+	}
 }
 
-func (app *application) logRequest(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		app.infoLog.Printf("%s - %s %s %s", r.RemoteAddr, r.Proto, r.Method, r.URL.RequestURI())
+func (app *application) logRequest() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		app.infoLog.Printf(
+			"%s - %s %s %s",
+			c.Request.RemoteAddr,
+			c.Request.Proto,
+			c.Request.Method,
+			c.Request.URL.RequestURI(),
+		)
 
-		next.ServeHTTP(w, r)
-	})
+		c.Next()
+	}
 }
 
-func (app *application) recoverPanic(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func (app *application) recoverPanic() gin.HandlerFunc {
+	return func(c *gin.Context) {
 		defer func() {
 			if err := recover(); err != nil {
-				w.Header().Set("Connection", "close")
-				app.serverError(w, fmt.Errorf("%s", err))
+				c.Writer.Header().Set("Connection", "close")
+				app.serverError(c.Writer, fmt.Errorf("%s", err))
 			}
 		}()
 
-		next.ServeHTTP(w, r)
-	})
+		c.Next()
+	}
 }

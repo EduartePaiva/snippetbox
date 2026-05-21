@@ -24,12 +24,12 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) showSnippet(w http.ResponseWriter, r *http.Request) {
-	numId, err := strconv.Atoi(r.URL.Query().Get("id"))
+	numId, err := strconv.Atoi(r.PathValue("id"))
+	fmt.Println(numId)
 	if err != nil || numId < 1 {
 		app.notFound(w)
 		return
 	}
-
 	s, err := app.snippets.Get(numId)
 	if err == models.ErrNoRecord {
 		app.notFound(w)
