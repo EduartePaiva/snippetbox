@@ -7,10 +7,9 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"time"
 
+	"github.com/gin-contrib/sessions/cookie"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/golangcollege/sessions"
 	"guthub.com/eduartepaiva/snippetbox/pkg/models/mysql"
 )
 
@@ -19,7 +18,7 @@ type application struct {
 	errorLog      *log.Logger
 	snippets      *mysql.SnippetModel
 	templateCache map[string]*template.Template
-	session       *sessions.Session
+	store         cookie.Store
 }
 
 func main() {
@@ -46,15 +45,14 @@ func main() {
 		errorLog.Fatal(err)
 	}
 
-	session := sessions.New([]byte(secret))
-	session.Lifetime = time.Hour * 12
+	store := cookie.NewStore([]byte(secret))
 
 	app := application{
 		infoLog,
 		errorLog,
 		&mysql.SnippetModel{DB: db},
 		templateCache,
-		session,
+		store,
 	}
 
 	srv := http.Server{

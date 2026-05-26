@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 
+	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 )
 
@@ -12,12 +13,13 @@ func (app *application) routes() http.Handler {
 	router.Use(app.recoverPanic(), app.logRequest(), secureHeaders())
 
 	dynamicRoutes := router.Group("")
-	dynamicRoutes.Use(app.session.Enable())
-
-	router.GET("/", ginHandleFuncAdapter(app.home))
-	router.GET("/snippet/create", ginHandleFuncAdapter(app.createSnippetForm))
-	router.POST("/snippet/create", ginHandleFuncAdapter(app.createSnippet))
-	router.GET("/snippet/:id/", ginHandleFuncAdapter(app.showSnippet))
+	dynamicRoutes.Use(sessions.Sessions("session", app.store))
+	{
+		dynamicRoutes.GET("/", ginHandleFuncAdapter(app.home))
+		dynamicRoutes.GET("/snippet/create", ginHandleFuncAdapter(app.createSnippetForm))
+		dynamicRoutes.POST("/snippet/create", app.createSnippet)
+		dynamicRoutes.GET("/snippet/:id/", app.showSnippet)
+	}
 
 	router.Static("/static/", "./ui/static")
 

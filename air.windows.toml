@@ -1,6 +1,7 @@
 root = "."
 testdata_dir = "testdata"
 tmp_dir = "tmp"
+env_files = [".env.development", ".env"]
 
 [build]
 args_bin = []
@@ -50,5 +51,3 @@ proxy_port = 0
 [screen]
 clear_on_rebuild = false
 keep_scroll = true
-
-env_files = [".env"]

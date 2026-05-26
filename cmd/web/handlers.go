@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/gin-contrib/sessions"
+	"github.com/gin-gonic/gin"
 	"guthub.com/eduartepaiva/snippetbox/pkg/forms"
 	"guthub.com/eduartepaiva/snippetbox/pkg/models"
 )
@@ -19,43 +21,49 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 	app.render(w, r, "home.page.html", &templateData{Snippets: s})
 }
 
-func (app *application) showSnippet(w http.ResponseWriter, r *http.Request) {
-	numId, err := strconv.Atoi(r.PathValue("id"))
-	fmt.Println(numId)
+func (app *application) showSnippet(c *gin.Context) {
+	numId, err := strconv.Atoi(c.Param("id"))
 	if err != nil || numId < 1 {
-		app.notFound(w)
+		app.notFound(c.Writer)
 		return
 	}
 	s, err := app.snippets.Get(numId)
 	if err == models.ErrNoRecord {
-		app.notFound(w)
+		app.notFound(c.Writer)
 		return
 	}
 	if err != nil {
-		app.serverError(w, err)
+		app.serverError(c.Writer, err)
 		return
 	}
+	session := sessions.Default(c)
+	flash, ok := session.Get("flash").(string)
+	if ok {
+		session.Delete("flash")
+		session.Save()
+	}
 
-	app.render(w, r, "show.page.html", &templateData{Snippet: s})
+	app.render(c.Writer, c.Request, "show.page.html", &templateData{Snippet: s, Flash: flash})
 }
 
 func (app *application) createSnippetForm(w http.ResponseWriter, r *http.Request) {
 	app.render(w, r, "create.page.html", &templateData{Form: forms.New(nil)})
 }
 
-func (app *application) createSnippet(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseForm()
+func (app *application) createSnippet(c *gin.Context) {
+	session := sessions.Default(c)
+	err := c.Request.ParseForm()
 	if err != nil {
-		app.serverError(w, err)
+		app.serverError(c.Writer, err)
 		return
 	}
-	form := forms.New(r.PostForm)
+	form := forms.New(c.Request.PostForm)
 	form.Required("title", "content", "expires")
 	form.MaxLength("title", 100)
 	form.PermittedValues("expires", "365", "7", "1")
 
 	if !form.Valid() {
-		app.render(w, r, "create.page.html", &templateData{
+		app.render(c.Writer, c.Request, "create.page.html", &templateData{
 			Form: form,
 		})
 		return
@@ -63,9 +71,11 @@ func (app *application) createSnippet(w http.ResponseWriter, r *http.Request) {
 
 	id, err := app.snippets.Insert(form.Get("title"), form.Get("content"), form.Get("expires"))
 	if err != nil {
-		app.serverError(w, err)
+		app.serverError(c.Writer, err)
 		return
 	}
 
-	http.Redirect(w, r, fmt.Sprintf("/snippet/%d", id), http.StatusSeeOther)
+	session.Set("flash", "Snippet successfully created!")
+	session.Save()
+	http.Redirect(c.Writer, c.Request, fmt.Sprintf("/snippet/%d", id), http.StatusSeeOther)
 }
