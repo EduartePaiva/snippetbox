@@ -39,4 +39,11 @@ require (
 	google.golang.org/protobuf v1.36.11 // indirect
 )
 
-require filippo.io/edwards25519 v1.2.0 // indirect
+require (
+	filippo.io/edwards25519 v1.2.0 // indirect
+	github.com/gin-contrib/sessions v1.1.0 // indirect
+	github.com/golangcollege/sessions v1.2.0 // indirect
+	github.com/gorilla/context v1.1.2 // indirect
+	github.com/gorilla/securecookie v1.1.2 // indirect
+	github.com/gorilla/sessions v1.4.0 // indirect
+)

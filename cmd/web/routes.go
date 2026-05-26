@@ -11,6 +11,9 @@ func (app *application) routes() http.Handler {
 
 	router.Use(app.recoverPanic(), app.logRequest(), secureHeaders())
 
+	dynamicRoutes := router.Group("")
+	dynamicRoutes.Use(app.session.Enable())
+
 	router.GET("/", ginHandleFuncAdapter(app.home))
 	router.GET("/snippet/create", ginHandleFuncAdapter(app.createSnippetForm))
 	router.POST("/snippet/create", ginHandleFuncAdapter(app.createSnippet))

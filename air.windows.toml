@@ -50,3 +50,5 @@ proxy_port = 0
 [screen]
 clear_on_rebuild = false
 keep_scroll = true
+
+env_files = [".env"]
