@@ -6,9 +6,12 @@ import (
 	"net/http"
 	"runtime/debug"
 	"time"
+
+	"github.com/gin-contrib/sessions"
+	"github.com/gin-gonic/gin"
 )
 
-func (app *application) addDefaultData(td *templateData, r *http.Request) *templateData {
+func (app *application) addDefaultData(td *templateData, c *gin.Context) *templateData {
 	if td == nil {
 		td = &templateData{}
 	}
@@ -16,6 +19,14 @@ func (app *application) addDefaultData(td *templateData, r *http.Request) *templ
 	year := time.Now().Year()
 
 	td.CurrentYear = year
+
+	s := sessions.Default(c)
+	flash, ok := s.Get("flash").(string)
+	if ok {
+		s.Delete("flash")
+		s.Save()
+	}
+	td.Flash = flash
 
 	return td
 }
@@ -35,20 +46,20 @@ func (app *application) notFound(w http.ResponseWriter) {
 	app.clientError(w, http.StatusNotFound)
 }
 
-func (app *application) render(w http.ResponseWriter, r *http.Request, name string, td *templateData) {
+func (app *application) render(c *gin.Context, name string, td *templateData) {
 	ts, ok := app.templateCache[name]
 	if !ok {
-		app.serverError(w, fmt.Errorf("The template %s does not exist", name))
+		app.serverError(c.Writer, fmt.Errorf("The template %s does not exist", name))
 		return
 	}
 
 	buf := new(bytes.Buffer)
 
-	err := ts.Execute(buf, app.addDefaultData(td, r))
+	err := ts.Execute(buf, app.addDefaultData(td, c))
 	if err != nil {
-		app.serverError(w, err)
+		app.serverError(c.Writer, err)
 		return
 	}
 
-	buf.WriteTo(w)
+	buf.WriteTo(c.Writer)
 }

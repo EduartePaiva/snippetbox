@@ -15,8 +15,8 @@ func (app *application) routes() http.Handler {
 	dynamicRoutes := router.Group("")
 	dynamicRoutes.Use(sessions.Sessions("session", app.store))
 	{
-		dynamicRoutes.GET("/", ginHandleFuncAdapter(app.home))
-		dynamicRoutes.GET("/snippet/create", ginHandleFuncAdapter(app.createSnippetForm))
+		dynamicRoutes.GET("/", app.home)
+		dynamicRoutes.GET("/snippet/create", app.createSnippetForm)
 		dynamicRoutes.POST("/snippet/create", app.createSnippet)
 		dynamicRoutes.GET("/snippet/:id/", app.showSnippet)
 	}
@@ -24,14 +24,4 @@ func (app *application) routes() http.Handler {
 	router.Static("/static/", "./ui/static")
 
 	return router
-}
-
-func ginHandleFuncAdapter(f http.HandlerFunc) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		for _, param := range c.Params {
-			c.Request.SetPathValue(param.Key, param.Value)
-		}
-
-		f(c.Writer, c.Request)
-	}
 }

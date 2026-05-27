@@ -11,14 +11,14 @@ import (
 	"guthub.com/eduartepaiva/snippetbox/pkg/models"
 )
 
-func (app *application) home(w http.ResponseWriter, r *http.Request) {
+func (app *application) home(c *gin.Context) {
 	s, err := app.snippets.Latest()
 	if err != nil {
-		app.serverError(w, err)
+		app.serverError(c.Writer, err)
 		return
 	}
 
-	app.render(w, r, "home.page.html", &templateData{Snippets: s})
+	app.render(c, "home.page.html", &templateData{Snippets: s})
 }
 
 func (app *application) showSnippet(c *gin.Context) {
@@ -36,18 +36,12 @@ func (app *application) showSnippet(c *gin.Context) {
 		app.serverError(c.Writer, err)
 		return
 	}
-	session := sessions.Default(c)
-	flash, ok := session.Get("flash").(string)
-	if ok {
-		session.Delete("flash")
-		session.Save()
-	}
 
-	app.render(c.Writer, c.Request, "show.page.html", &templateData{Snippet: s, Flash: flash})
+	app.render(c, "show.page.html", &templateData{Snippet: s})
 }
 
-func (app *application) createSnippetForm(w http.ResponseWriter, r *http.Request) {
-	app.render(w, r, "create.page.html", &templateData{Form: forms.New(nil)})
+func (app *application) createSnippetForm(c *gin.Context) {
+	app.render(c, "create.page.html", &templateData{Form: forms.New(nil)})
 }
 
 func (app *application) createSnippet(c *gin.Context) {
@@ -63,7 +57,7 @@ func (app *application) createSnippet(c *gin.Context) {
 	form.PermittedValues("expires", "365", "7", "1")
 
 	if !form.Valid() {
-		app.render(c.Writer, c.Request, "create.page.html", &templateData{
+		app.render(c, "create.page.html", &templateData{
 			Form: form,
 		})
 		return
