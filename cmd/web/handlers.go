@@ -75,7 +75,7 @@ func (app *application) createSnippet(c *gin.Context) {
 }
 
 func (app *application) signupUserForm(c *gin.Context) {
-	fmt.Fprintln(c.Writer, "display the user signup form...")
+	app.render(c, "signup.page.html", &templateData{Form: forms.New(nil)})
 }
 
 func (app *application) signupUser(c *gin.Context) {
