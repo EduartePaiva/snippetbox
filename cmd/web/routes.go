@@ -21,6 +21,12 @@ func (app *application) routes() http.Handler {
 		dynamicRoutes.GET("/snippet/:id/", app.showSnippet)
 	}
 
+	router.GET("/user/signup", app.signupUserForm)
+	router.POST("/user/signup", app.signupUser)
+	router.GET("/user/login", app.loginUserForm)
+	router.POST("/user/login", app.loginUser)
+	router.POST("/user/logout", app.logoutUser)
+
 	router.Static("/static/", "./ui/static")
 
 	return router

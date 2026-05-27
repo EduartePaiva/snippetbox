@@ -73,3 +73,23 @@ func (app *application) createSnippet(c *gin.Context) {
 	session.Save()
 	http.Redirect(c.Writer, c.Request, fmt.Sprintf("/snippet/%d", id), http.StatusSeeOther)
 }
+
+func (app *application) signupUserForm(c *gin.Context) {
+	fmt.Fprintln(c.Writer, "display the user signup form...")
+}
+
+func (app *application) signupUser(c *gin.Context) {
+	fmt.Fprintln(c.Writer, "create a new user...")
+}
+
+func (app *application) loginUserForm(c *gin.Context) {
+	fmt.Fprintln(c.Writer, "display the user login form...")
+}
+
+func (app *application) loginUser(c *gin.Context) {
+	fmt.Fprintln(c.Writer, "authenticate and login the user...")
+}
+
+func (app *application) logoutUser(c *gin.Context) {
+	fmt.Fprintln(c.Writer, "logout the user...")
+}
