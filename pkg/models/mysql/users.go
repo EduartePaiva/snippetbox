@@ -2,8 +2,10 @@ package mysql
 
 import (
 	"database/sql"
+	"strings"
 
 	"github.com/go-sql-driver/mysql"
+	"golang.org/x/crypto/bcrypt"
 	"guthub.com/eduartepaiva/snippetbox/pkg/models"
 )
 
@@ -11,15 +13,21 @@ type UserModel struct {
 	DB *sql.DB
 }
 
-func (m *UserModel) Insert(name, email, hashed_password string) (int, error) {
+func (m *UserModel) Insert(name, email, password string) (int, error) {
 	stmt := `INSERT INTO users (name,email,hashed_password,created_at) VALUES (?, ?, ?, UTC_TIMESTAMP())`
 
-	result, err := m.DB.Exec(stmt, name, email, hashed_password)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), 12)
+	if err != nil {
+		return 0, err
+
+	}
+
+	result, err := m.DB.Exec(stmt, name, email, hashedPassword)
 
 	if err != nil {
 		// check if the error code is 1062 for unique constraint, if it's then it's a duplicate email
-		mysql_err, ok := err.(*mysql.MySQLError)
-		if ok && mysql_err.Number == 1062 {
+		mysqlErr, ok := err.(*mysql.MySQLError)
+		if ok && mysqlErr.Number == 1062 && strings.Contains(mysqlErr.Message, "users_uc_email") {
 			return 0, models.ErrDuplicateEmail
 		}
 
