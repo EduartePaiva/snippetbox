@@ -1,12 +1,14 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 	"guthub.com/eduartepaiva/snippetbox/pkg/forms"
 	"guthub.com/eduartepaiva/snippetbox/pkg/models"
 )
@@ -79,7 +81,43 @@ func (app *application) signupUserForm(c *gin.Context) {
 }
 
 func (app *application) signupUser(c *gin.Context) {
-	fmt.Fprintln(c.Writer, "create a new user...")
+	err := c.Request.ParseForm()
+	if err != nil {
+		app.serverError(c.Writer, err)
+		return
+	}
+	form := forms.New(c.Request.PostForm)
+	form.Required("name", "email", "password")
+	form.MinLength("password", 10)
+	form.MatchesPattern("email", forms.EmailRX)
+
+	if !form.Valid() {
+		app.render(c, "signup.page.html", &templateData{Form: form})
+		return
+	}
+
+	hashed_pw, err := bcrypt.GenerateFromPassword([]byte(form.Get("password")), 12)
+	if err != nil {
+		app.serverError(c.Writer, err)
+		return
+	}
+
+	_, err = app.users.Insert(form.Get("name"), form.Get("email"), string(hashed_pw))
+	if errors.Is(err, models.ErrDuplicateEmail) {
+		form.Errors.Add("email", "Email already exists")
+		app.render(c, "signup.page.html", &templateData{Form: form})
+		return
+	}
+
+	if err != nil {
+		app.serverError(c.Writer, err)
+		return
+	}
+
+	session := sessions.Default(c)
+	session.Set("flash", "Account created successfully!")
+	session.Save()
+	http.Redirect(c.Writer, c.Request, "/", http.StatusSeeOther)
 }
 
 func (app *application) loginUserForm(c *gin.Context) {
