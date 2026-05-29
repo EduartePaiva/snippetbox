@@ -16,8 +16,12 @@ func (app *application) addDefaultData(td *templateData, c *gin.Context) *templa
 		td = &templateData{}
 	}
 
-	year := time.Now().Year()
+	userID, ok := app.authenticatedUser(c)
+	if ok {
+		td.AuthenticatedUser = userID
+	}
 
+	year := time.Now().Year()
 	td.CurrentYear = year
 
 	s := sessions.Default(c)
@@ -62,4 +66,11 @@ func (app *application) render(c *gin.Context, name string, td *templateData) {
 	}
 
 	buf.WriteTo(c.Writer)
+}
+
+func (app *application) authenticatedUser(c *gin.Context) (int, bool) {
+	session := sessions.Default(c)
+	userID, ok := session.Get("userID").(int)
+
+	return userID, ok
 }

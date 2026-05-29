@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
@@ -38,6 +39,18 @@ func (app *application) recoverPanic() gin.HandlerFunc {
 			}
 		}()
 
+		c.Next()
+	}
+}
+
+func (app *application) requireAuthenticateUser() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		_, ok := app.authenticatedUser(c)
+		if !ok {
+			c.Abort()
+			http.Redirect(c.Writer, c.Request, "/user/login", http.StatusSeeOther)
+			return
+		}
 		c.Next()
 	}
 }

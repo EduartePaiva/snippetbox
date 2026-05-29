@@ -16,14 +16,14 @@ func (app *application) routes() http.Handler {
 	dynamicRoutes.Use(sessions.Sessions("session", app.store))
 	{
 		dynamicRoutes.GET("/", app.home)
-		dynamicRoutes.GET("/snippet/create", app.createSnippetForm)
-		dynamicRoutes.POST("/snippet/create", app.createSnippet)
+		dynamicRoutes.GET("/snippet/create", app.requireAuthenticateUser(), app.createSnippetForm)
+		dynamicRoutes.POST("/snippet/create", app.requireAuthenticateUser(), app.createSnippet)
 		dynamicRoutes.GET("/snippet/:id/", app.showSnippet)
 		dynamicRoutes.GET("/user/signup", app.signupUserForm)
 		dynamicRoutes.POST("/user/signup", app.signupUser)
 		dynamicRoutes.GET("/user/login", app.loginUserForm)
 		dynamicRoutes.POST("/user/login", app.loginUser)
-		dynamicRoutes.POST("/user/logout", app.logoutUser)
+		dynamicRoutes.POST("/user/logout", app.requireAuthenticateUser(), app.logoutUser)
 	}
 
 	router.Static("/static/", "./ui/static")
