@@ -123,18 +123,42 @@ func (app *application) loginUser(c *gin.Context) {
 		app.serverError(c.Writer, err)
 		return
 	}
+
+	form := forms.New(c.Request.PostForm)
+	form.Required("email", "password")
+	form.MatchesPattern("email", forms.EmailRX)
+
+	if !form.Valid() {
+		form.Errors.Add("generic", "invalid email or password")
+		app.render(c, "login.page.html", &templateData{Form: form})
+		return
+	}
+
 	email := c.PostForm("email")
 	password := c.PostForm("password")
 
 	id, err := app.users.Authenticate(email, password)
-	if err != nil {
+	if err == models.ErrInvalidCredentials {
+		form.Errors.Add("generic", "Email or Password is incorrect")
+		app.render(c, "login.page.html", &templateData{Form: form})
+		return
+	} else if err != nil {
 		app.serverError(c.Writer, err)
 		return
 	}
-	fmt.Println(id)
-	fmt.Fprintln(c.Writer, "authenticate and login the user...")
+
+	session := sessions.Default(c)
+	session.Set("userID", id)
+	session.Set("flash", "You logged in!")
+	session.Save()
+
+	http.Redirect(c.Writer, c.Request, "/", http.StatusSeeOther)
 }
 
 func (app *application) logoutUser(c *gin.Context) {
-	fmt.Fprintln(c.Writer, "logout the user...")
+	session := sessions.Default(c)
+	session.Delete("userID")
+	session.Set("flash", "You've been logged out!")
+	session.Save()
+	http.Redirect(c.Writer, c.Request, "/", http.StatusSeeOther)
 }

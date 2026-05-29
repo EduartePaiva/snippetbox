@@ -2,7 +2,6 @@ package mysql
 
 import (
 	"database/sql"
-	"fmt"
 	"strings"
 
 	"github.com/go-sql-driver/mysql"
@@ -44,17 +43,28 @@ func (m *UserModel) Insert(name, email, password string) (int, error) {
 }
 
 func (m *UserModel) Authenticate(email, password string) (int, error) {
-	stmt := "SELECT id, hashed_password FROM users WHERE users.email='?'"
+	stmt := "SELECT id, hashed_password FROM users WHERE users.email=?"
 
-	var row any
+	var row struct {
+		ID             int
+		HashedPassword []byte
+	}
 
-	err := m.DB.QueryRow(stmt, email).Scan(&row)
-	fmt.Println(row)
-	if err != nil {
+	err := m.DB.QueryRow(stmt, email).Scan(&row.ID, &row.HashedPassword)
+	if err == sql.ErrNoRows {
+		return 0, models.ErrInvalidCredentials
+	} else if err != nil {
 		return 0, err
 	}
 
-	return 0, nil
+	err = bcrypt.CompareHashAndPassword(row.HashedPassword, []byte(password))
+	if err == bcrypt.ErrMismatchedHashAndPassword {
+		return 0, models.ErrInvalidCredentials
+	} else if err != nil {
+		return 0, err
+	}
+
+	return row.ID, nil
 }
 
 func (m *UserModel) Get(id int) (*models.User, error) {
