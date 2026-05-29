@@ -2,6 +2,7 @@ package mysql
 
 import (
 	"database/sql"
+	"fmt"
 	"strings"
 
 	"github.com/go-sql-driver/mysql"
@@ -43,6 +44,16 @@ func (m *UserModel) Insert(name, email, password string) (int, error) {
 }
 
 func (m *UserModel) Authenticate(email, password string) (int, error) {
+	stmt := "SELECT id, hashed_password FROM users WHERE users.email='?'"
+
+	var row any
+
+	err := m.DB.QueryRow(stmt, email).Scan(&row)
+	fmt.Println(row)
+	if err != nil {
+		return 0, err
+	}
+
 	return 0, nil
 }
 

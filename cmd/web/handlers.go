@@ -97,7 +97,7 @@ func (app *application) signupUser(c *gin.Context) {
 
 	_, err = app.users.Insert(form.Get("name"), form.Get("email"), form.Get("password"))
 	if errors.Is(err, models.ErrDuplicateEmail) {
-		form.Errors.Add("email", "Email already exists")
+		form.Errors.Add("email", "Address is already in use")
 		app.render(c, "signup.page.html", &templateData{Form: form})
 		return
 	}
@@ -108,16 +108,30 @@ func (app *application) signupUser(c *gin.Context) {
 	}
 
 	session := sessions.Default(c)
-	session.Set("flash", "Account created successfully!")
+	session.Set("flash", "Your signup was successful. Please log in.")
 	session.Save()
-	http.Redirect(c.Writer, c.Request, "/", http.StatusSeeOther)
+	http.Redirect(c.Writer, c.Request, "/user/login", http.StatusSeeOther)
 }
 
 func (app *application) loginUserForm(c *gin.Context) {
-	fmt.Fprintln(c.Writer, "display the user login form...")
+	app.render(c, "login.page.html", &templateData{Form: forms.New(nil)})
 }
 
 func (app *application) loginUser(c *gin.Context) {
+	err := c.Request.ParseForm()
+	if err != nil {
+		app.serverError(c.Writer, err)
+		return
+	}
+	email := c.PostForm("email")
+	password := c.PostForm("password")
+
+	id, err := app.users.Authenticate(email, password)
+	if err != nil {
+		app.serverError(c.Writer, err)
+		return
+	}
+	fmt.Println(id)
 	fmt.Fprintln(c.Writer, "authenticate and login the user...")
 }
 
