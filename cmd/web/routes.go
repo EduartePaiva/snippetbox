@@ -13,7 +13,7 @@ func (app *application) routes() http.Handler {
 	router.Use(app.recoverPanic(), app.logRequest(), secureHeaders())
 
 	dynamicRoutes := router.Group("")
-	dynamicRoutes.Use(sessions.Sessions("session", app.store))
+	dynamicRoutes.Use(sessions.Sessions("session", app.store), app.configureSessionOptions())
 	{
 		dynamicRoutes.GET("/", app.home)
 		dynamicRoutes.GET("/snippet/create", app.requireAuthenticateUser(), app.createSnippetForm)

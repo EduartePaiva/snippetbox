@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 )
 
@@ -51,6 +52,15 @@ func (app *application) requireAuthenticateUser() gin.HandlerFunc {
 			http.Redirect(c.Writer, c.Request, "/user/login", http.StatusSeeOther)
 			return
 		}
+		c.Next()
+	}
+}
+
+func (app *application) configureSessionOptions() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		s := sessions.Default(c)
+		s.Options(sessions.Options{SameSite: http.SameSiteStrictMode, Secure: true, HttpOnly: true, MaxAge: 43200, Path: "/"})
+		s.Save()
 		c.Next()
 	}
 }
