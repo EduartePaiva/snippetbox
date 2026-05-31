@@ -6,59 +6,57 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/gin-contrib/sessions"
-	"github.com/gin-gonic/gin"
+	"github.com/go-chi/chi/v5"
 	"guthub.com/eduartepaiva/snippetbox/pkg/forms"
 	"guthub.com/eduartepaiva/snippetbox/pkg/models"
 )
 
-func (app *application) home(c *gin.Context) {
+func (app *application) home(w http.ResponseWriter, r *http.Request) {
 	s, err := app.snippets.Latest()
 	if err != nil {
-		app.serverError(c.Writer, err)
+		app.serverError(w, err)
 		return
 	}
 
-	app.render(c, "home.page.html", &templateData{Snippets: s})
+	app.render(w, r, "home.page.html", &templateData{Snippets: s})
 }
 
-func (app *application) showSnippet(c *gin.Context) {
-	numId, err := strconv.Atoi(c.Param("id"))
+func (app *application) showSnippet(w http.ResponseWriter, r *http.Request) {
+	numId, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil || numId < 1 {
-		app.notFound(c.Writer)
+		app.notFound(w)
 		return
 	}
 	s, err := app.snippets.Get(numId)
 	if err == models.ErrNoRecord {
-		app.notFound(c.Writer)
+		app.notFound(w)
 		return
 	}
 	if err != nil {
-		app.serverError(c.Writer, err)
+		app.serverError(w, err)
 		return
 	}
 
-	app.render(c, "show.page.html", &templateData{Snippet: s})
+	app.render(w, r, "show.page.html", &templateData{Snippet: s})
 }
 
-func (app *application) createSnippetForm(c *gin.Context) {
-	app.render(c, "create.page.html", &templateData{Form: forms.New(nil)})
+func (app *application) createSnippetForm(w http.ResponseWriter, r *http.Request) {
+	app.render(w, r, "create.page.html", &templateData{Form: forms.New(nil)})
 }
 
-func (app *application) createSnippet(c *gin.Context) {
-	session := sessions.Default(c)
-	err := c.Request.ParseForm()
+func (app *application) createSnippet(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
 	if err != nil {
-		app.serverError(c.Writer, err)
+		app.serverError(w, err)
 		return
 	}
-	form := forms.New(c.Request.PostForm)
+	form := forms.New(r.PostForm)
 	form.Required("title", "content", "expires")
 	form.MaxLength("title", 100)
 	form.PermittedValues("expires", "365", "7", "1")
 
 	if !form.Valid() {
-		app.render(c, "create.page.html", &templateData{
+		app.render(w, r, "create.page.html", &templateData{
 			Form: form,
 		})
 		return
@@ -66,99 +64,92 @@ func (app *application) createSnippet(c *gin.Context) {
 
 	id, err := app.snippets.Insert(form.Get("title"), form.Get("content"), form.Get("expires"))
 	if err != nil {
-		app.serverError(c.Writer, err)
+		app.serverError(w, err)
 		return
 	}
 
-	session.Set("flash", "Snippet successfully created!")
-	session.Save()
-	http.Redirect(c.Writer, c.Request, fmt.Sprintf("/snippet/%d", id), http.StatusSeeOther)
+	app.session.Put(r, "flash", "Snippet successfully created!")
+	http.Redirect(w, r, fmt.Sprintf("/snippet/%d", id), http.StatusSeeOther)
 }
 
-func (app *application) signupUserForm(c *gin.Context) {
-	app.render(c, "signup.page.html", &templateData{Form: forms.New(nil)})
+func (app *application) signupUserForm(w http.ResponseWriter, r *http.Request) {
+	app.render(w, r, "signup.page.html", &templateData{Form: forms.New(nil)})
 }
 
-func (app *application) signupUser(c *gin.Context) {
-	err := c.Request.ParseForm()
+func (app *application) signupUser(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
 	if err != nil {
-		app.serverError(c.Writer, err)
+		app.serverError(w, err)
 		return
 	}
-	form := forms.New(c.Request.PostForm)
+	form := forms.New(r.PostForm)
 	form.Required("name", "email", "password")
 	form.MinLength("password", 10)
 	form.MatchesPattern("email", forms.EmailRX)
 
 	if !form.Valid() {
-		app.render(c, "signup.page.html", &templateData{Form: form})
+		app.render(w, r, "signup.page.html", &templateData{Form: form})
 		return
 	}
 
 	_, err = app.users.Insert(form.Get("name"), form.Get("email"), form.Get("password"))
 	if errors.Is(err, models.ErrDuplicateEmail) {
 		form.Errors.Add("email", "Address is already in use")
-		app.render(c, "signup.page.html", &templateData{Form: form})
+		app.render(w, r, "signup.page.html", &templateData{Form: form})
 		return
 	}
 
 	if err != nil {
-		app.serverError(c.Writer, err)
+		app.serverError(w, err)
 		return
 	}
 
-	session := sessions.Default(c)
-	session.Set("flash", "Your signup was successful. Please log in.")
-	session.Save()
-	http.Redirect(c.Writer, c.Request, "/user/login", http.StatusSeeOther)
+	app.session.Put(r, "flash", "Your signup was successful. Please log in.")
+	http.Redirect(w, r, "/user/login", http.StatusSeeOther)
 }
 
-func (app *application) loginUserForm(c *gin.Context) {
-	app.render(c, "login.page.html", &templateData{Form: forms.New(nil)})
+func (app *application) loginUserForm(w http.ResponseWriter, r *http.Request) {
+	app.render(w, r, "login.page.html", &templateData{Form: forms.New(nil)})
 }
 
-func (app *application) loginUser(c *gin.Context) {
-	err := c.Request.ParseForm()
+func (app *application) loginUser(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
 	if err != nil {
-		app.serverError(c.Writer, err)
+		app.serverError(w, err)
 		return
 	}
 
-	form := forms.New(c.Request.PostForm)
+	form := forms.New(r.PostForm)
 	form.Required("email", "password")
 	form.MatchesPattern("email", forms.EmailRX)
 
 	if !form.Valid() {
 		form.Errors.Add("generic", "invalid email or password")
-		app.render(c, "login.page.html", &templateData{Form: form})
+		app.render(w, r, "login.page.html", &templateData{Form: form})
 		return
 	}
 
-	email := c.PostForm("email")
-	password := c.PostForm("password")
+	email := r.FormValue("email")
+	password := r.FormValue("password")
 
 	id, err := app.users.Authenticate(email, password)
 	if err == models.ErrInvalidCredentials {
 		form.Errors.Add("generic", "Email or Password is incorrect")
-		app.render(c, "login.page.html", &templateData{Form: form})
+		app.render(w, r, "login.page.html", &templateData{Form: form})
 		return
 	} else if err != nil {
-		app.serverError(c.Writer, err)
+		app.serverError(w, err)
 		return
 	}
 
-	session := sessions.Default(c)
-	session.Set("userID", id)
-	session.Set("flash", "You logged in!")
-	session.Save()
+	app.session.Put(r, "userID", id)
+	app.session.Put(r, "flash", "You logged in!")
 
-	http.Redirect(c.Writer, c.Request, "/", http.StatusSeeOther)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
-func (app *application) logoutUser(c *gin.Context) {
-	session := sessions.Default(c)
-	session.Delete("userID")
-	session.Set("flash", "You've been logged out!")
-	session.Save()
-	http.Redirect(c.Writer, c.Request, "/", http.StatusSeeOther)
+func (app *application) logoutUser(w http.ResponseWriter, r *http.Request) {
+	app.session.Remove(r, "userID")
+	app.session.Put(r, "flash", "You've been logged out!")
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }

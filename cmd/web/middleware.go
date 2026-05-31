@@ -3,64 +3,54 @@ package main
 import (
 	"fmt"
 	"net/http"
-
-	"github.com/gin-contrib/sessions"
-	"github.com/gin-gonic/gin"
 )
 
-func secureHeaders() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Writer.Header().Add("X-Frame-Options", "deny")
-		c.Writer.Header().Add("X-XSS-Protection", "1; mode=block")
+func secureHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("X-Frame-Options", "deny")
+		w.Header().Add("X-XSS-Protection", "1; mode=block")
 
-		c.Next()
-	}
+		next.ServeHTTP(w, r)
+	})
+
 }
 
-func (app *application) logRequest() gin.HandlerFunc {
-	return func(c *gin.Context) {
+func (app *application) logRequest(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		app.infoLog.Printf(
 			"%s - %s %s %s",
-			c.Request.RemoteAddr,
-			c.Request.Proto,
-			c.Request.Method,
-			c.Request.URL.RequestURI(),
+			r.RemoteAddr,
+			r.Proto,
+			r.Method,
+			r.URL.RequestURI(),
 		)
+		next.ServeHTTP(w, r)
+	})
 
-		c.Next()
-	}
 }
 
-func (app *application) recoverPanic() gin.HandlerFunc {
-	return func(c *gin.Context) {
+func (app *application) recoverPanic(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if err := recover(); err != nil {
-				c.Writer.Header().Set("Connection", "close")
-				app.serverError(c.Writer, fmt.Errorf("%s", err))
+				w.Header().Set("Connection", "close")
+				app.serverError(w, fmt.Errorf("%s", err))
 			}
 		}()
 
-		c.Next()
-	}
+		next.ServeHTTP(w, r)
+	})
+
 }
 
-func (app *application) requireAuthenticateUser() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		_, ok := app.authenticatedUser(c)
+func (app *application) requireAuthenticateUser(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, ok := app.authenticatedUser(r)
 		if !ok {
-			c.Abort()
-			http.Redirect(c.Writer, c.Request, "/user/login", http.StatusSeeOther)
+			http.Redirect(w, r, "/user/login", http.StatusSeeOther)
 			return
 		}
-		c.Next()
-	}
-}
+		next.ServeHTTP(w, r)
+	})
 
-func (app *application) configureSessionOptions() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		s := sessions.Default(c)
-		s.Options(sessions.Options{SameSite: http.SameSiteStrictMode, Secure: true, HttpOnly: true, MaxAge: 43200, Path: "/"})
-		s.Save()
-		c.Next()
-	}
 }

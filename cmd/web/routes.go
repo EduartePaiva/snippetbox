@@ -2,31 +2,52 @@ package main
 
 import (
 	"net/http"
+	"strings"
 
-	"github.com/gin-contrib/sessions"
-	"github.com/gin-gonic/gin"
+	"github.com/go-chi/chi/v5"
 )
 
 func (app *application) routes() http.Handler {
-	router := gin.New()
+	r := chi.NewRouter()
 
-	router.Use(app.recoverPanic(), app.logRequest(), secureHeaders())
+	r.Use(app.recoverPanic, app.logRequest, secureHeaders)
 
-	dynamicRoutes := router.Group("")
-	dynamicRoutes.Use(sessions.Sessions("session", app.store), app.configureSessionOptions())
-	{
-		dynamicRoutes.GET("/", app.home)
-		dynamicRoutes.GET("/snippet/create", app.requireAuthenticateUser(), app.createSnippetForm)
-		dynamicRoutes.POST("/snippet/create", app.requireAuthenticateUser(), app.createSnippet)
-		dynamicRoutes.GET("/snippet/:id/", app.showSnippet)
-		dynamicRoutes.GET("/user/signup", app.signupUserForm)
-		dynamicRoutes.POST("/user/signup", app.signupUser)
-		dynamicRoutes.GET("/user/login", app.loginUserForm)
-		dynamicRoutes.POST("/user/login", app.loginUser)
-		dynamicRoutes.POST("/user/logout", app.requireAuthenticateUser(), app.logoutUser)
+	r.Group(func(r chi.Router) {
+		r.Use(app.session.Enable)
+
+		r.Get("/", app.home)
+		r.With(app.requireAuthenticateUser).Get("/snippet/create", app.createSnippetForm)
+		r.With(app.requireAuthenticateUser).Post("/snippet/create", app.createSnippet)
+		r.Get("/snippet/{id}", app.showSnippet)
+		r.Get("/user/signup", app.signupUserForm)
+		r.Post("/user/signup", app.signupUser)
+		r.Get("/user/login", app.loginUserForm)
+		r.Post("/user/login", app.loginUser)
+		r.With(app.requireAuthenticateUser).Post("/user/logout", app.logoutUser)
+
+	})
+
+	filesDir := http.Dir("./ui/static")
+	FileServer(r, "/static/", filesDir)
+
+	return r
+}
+
+func FileServer(r chi.Router, path string, root http.FileSystem) {
+	if strings.ContainsAny(path, "{}*") {
+		panic("FileServer does not permit any URL parameters.")
 	}
 
-	router.Static("/static/", "./ui/static")
+	if path != "/" && path[len(path)-1] != '/' {
+		r.Get(path, http.RedirectHandler(path+"/", 301).ServeHTTP)
+		path += "/"
+	}
+	path += "*"
 
-	return router
+	r.Get(path, func(w http.ResponseWriter, r *http.Request) {
+		rctx := chi.RouteContext(r.Context())
+		pathPrefix := strings.TrimSuffix(rctx.RoutePattern(), "/*")
+		fs := http.StripPrefix(pathPrefix, http.FileServer(root))
+		fs.ServeHTTP(w, r)
+	})
 }
