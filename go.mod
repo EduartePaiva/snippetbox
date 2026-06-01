@@ -13,4 +13,7 @@ require (
 	golang.org/x/sys v0.45.0 // indirect
 )
 
-require filippo.io/edwards25519 v1.2.0 // indirect
+require (
+	filippo.io/edwards25519 v1.2.0 // indirect
+	github.com/justinas/nosurf v1.2.0 // indirect
+)

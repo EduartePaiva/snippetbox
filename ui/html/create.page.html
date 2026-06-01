@@ -5,6 +5,7 @@
 {{define "body"}}
 
 <form action="/snippet/create" method="POST">
+    <input type="text" name="csrf_token" hidden value="{{.CSRFToken}}">
     {{with .Form}}
     <div>
         <label>Title:</label>
