@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
 	"github.com/justinas/nosurf"
+	"guthub.com/eduartepaiva/snippetbox/pkg/models"
 )
 
 func secureHeaders(next http.Handler) http.Handler {
@@ -45,10 +47,32 @@ func (app *application) recoverPanic(next http.Handler) http.Handler {
 
 }
 
+func (app *application) authenticate(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		exists := app.session.Exists(r, "userID")
+		if !exists {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		user, err := app.users.Get(app.session.GetInt(r, "userID"))
+		if err == models.ErrNoRecord {
+			app.session.Remove(r, "userID")
+			next.ServeHTTP(w, r)
+			return
+		} else if err != nil {
+			app.serverError(w, err)
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), contextKeyUser, user)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
 func (app *application) requireAuthenticateUser(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, ok := app.authenticatedUser(r)
-		if !ok {
+		if app.authenticatedUser(r) == nil {
 			http.Redirect(w, r, "/user/login", http.StatusSeeOther)
 			return
 		}

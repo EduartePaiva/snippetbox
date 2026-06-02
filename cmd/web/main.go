@@ -15,6 +15,10 @@ import (
 	"guthub.com/eduartepaiva/snippetbox/pkg/models/mysql"
 )
 
+type contextKey string
+
+var contextKeyUser = contextKey("user")
+
 type application struct {
 	infoLog       *log.Logger
 	errorLog      *log.Logger

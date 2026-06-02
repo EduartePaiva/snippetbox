@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/justinas/nosurf"
+	"guthub.com/eduartepaiva/snippetbox/pkg/models"
 )
 
 func (app *application) addDefaultData(td *templateData, r *http.Request) *templateData {
@@ -15,10 +16,7 @@ func (app *application) addDefaultData(td *templateData, r *http.Request) *templ
 		td = &templateData{}
 	}
 
-	userID, ok := app.authenticatedUser(r)
-	if ok {
-		td.AuthenticatedUser = userID
-	}
+	td.AuthenticatedUser = app.authenticatedUser(r)
 
 	year := time.Now().Year()
 	td.CurrentYear = year
@@ -63,8 +61,11 @@ func (app *application) render(w http.ResponseWriter, r *http.Request, name stri
 	buf.WriteTo(w)
 }
 
-func (app *application) authenticatedUser(r *http.Request) (int, bool) {
-	userID, ok := app.session.Get(r, "userID").(int)
+func (app *application) authenticatedUser(r *http.Request) *models.User {
+	user, ok := r.Context().Value(contextKeyUser).(*models.User)
+	if !ok {
+		return nil
+	}
 
-	return userID, ok
+	return user
 }

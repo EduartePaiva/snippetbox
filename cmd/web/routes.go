@@ -13,7 +13,7 @@ func (app *application) routes() http.Handler {
 	r.Use(app.recoverPanic, app.logRequest, secureHeaders)
 
 	r.Group(func(r chi.Router) {
-		r.Use(app.session.Enable, app.noSurf)
+		r.Use(app.session.Enable, app.noSurf, app.authenticate)
 
 		r.Get("/", app.home)
 		r.With(app.requireAuthenticateUser).Get("/snippet/create", app.createSnippetForm)

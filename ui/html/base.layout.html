@@ -27,7 +27,7 @@
             {{if .AuthenticatedUser}}
             <form action="/user/logout" method="post">
                 <input type="text" name="csrf_token" hidden value="{{.CSRFToken}}">
-                <button type="submit">Logout</button>
+                <button type="submit">Logout ({{.AuthenticatedUser.Name}})</button>
             </form>
             {{else}}
             <a href="/user/signup">Signup</a>
