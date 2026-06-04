@@ -27,6 +27,7 @@ func (app *application) routes() http.Handler {
 
 	})
 
+	r.Get("/ping", ping)
 	filesDir := http.Dir("./ui/static")
 	FileServer(r, "/static/", filesDir)
 
