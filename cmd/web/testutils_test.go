@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/golangcollege/sessions"
-	"golang.org/x/net/publicsuffix"
 	"guthub.com/eduartepaiva/snippetbox/pkg/models/mock"
 )
 
@@ -30,8 +29,8 @@ func newTestApplication(t *testing.T) *application {
 	session.Secure = true
 
 	return &application{
-		errorLog:      log.New(io.Discard, "", 0),
-		infoLog:       log.New(io.Discard, "", 0),
+		errorLog:      log.New(t.Output(), "", 0),
+		infoLog:       log.New(t.Output(), "", 0),
 		session:       session,
 		snippets:      &mock.SnippetModel{},
 		users:         &mock.UserModel{},
@@ -46,9 +45,7 @@ type testServer struct {
 func newTestServer(t *testing.T, h http.Handler) *testServer {
 	ts := httptest.NewTLSServer(h)
 
-	jar, err := cookiejar.New(&cookiejar.Options{
-		PublicSuffixList: publicsuffix.List,
-	})
+	jar, err := cookiejar.New(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,12 +80,14 @@ func (ts *testServer) postForm(t *testing.T, urlPath string, form url.Values) (i
 		t.Fatal(err)
 	}
 
+	// Read the response body.
 	defer rs.Body.Close()
 	body, err := io.ReadAll(rs.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Return the response status, headers and body.
 	return rs.StatusCode, rs.Header, body
 }
 
