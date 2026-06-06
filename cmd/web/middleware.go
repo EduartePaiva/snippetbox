@@ -87,15 +87,8 @@ func (app *application) noSurf(next http.Handler) http.Handler {
 		HttpOnly: true,
 		Path:     "/",
 		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
 	})
-	csrfHandler.SetFailureHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		for _, c := range r.Cookies() {
-			app.infoLog.Println(c)
-		}
-		r.ParseForm()
-		app.infoLog.Println(r.PostForm)
-		http.Error(w, http.StatusText(400), 400)
-	}))
 
 	return csrfHandler
 

@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -63,7 +64,6 @@ func (ts *testServer) get(t *testing.T, urlPath string) (int, http.Header, []byt
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	ts.Client().Jar.SetCookies(rs.Request.URL, rs.Cookies())
 	defer rs.Body.Close()
 	body, err := io.ReadAll(rs.Body)
@@ -75,20 +75,25 @@ func (ts *testServer) get(t *testing.T, urlPath string) (int, http.Header, []byt
 }
 
 func (ts *testServer) postForm(t *testing.T, urlPath string, form url.Values) (int, http.Header, []byte) {
-	rs, err := ts.Client().PostForm(ts.URL+urlPath, form)
+	req, err := http.NewRequest("POST", ts.URL+urlPath, strings.NewReader(form.Encode()))
 	if err != nil {
 		t.Fatal(err)
 	}
-
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Origin", ts.URL)
+	resp, err := ts.Client().Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
 	// Read the response body.
-	defer rs.Body.Close()
-	body, err := io.ReadAll(rs.Body)
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Return the response status, headers and body.
-	return rs.StatusCode, rs.Header, body
+	return resp.StatusCode, resp.Header, body
 }
 
 func extractCSRFToken(t *testing.T, body []byte) string {
