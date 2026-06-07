@@ -9,7 +9,7 @@ import (
 )
 
 func newTestDB(t *testing.T) (*sql.DB, func()) {
-	dsn := "test_web:localhost@/test_snippetbox?parseTime=true&multiStatements=true"
+	dsn := "test_web:pass@/test_snippetbox?parseTime=true&multiStatements=true"
 	script, err := os.ReadFile("./testdata/setup.sql")
 	if err != nil {
 		t.Fatal(err)
